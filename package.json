@@ -2,6 +2,24 @@
 	"name": "cademo",
 	"version": "0.1.0",
 	"description": "Vidéos de démo d'une app web, écrites comme des scénarios Playwright et montées automatiquement (caméra, curseur, rythme).",
+	"keywords": [
+		"demo",
+		"video",
+		"screencast",
+		"playwright",
+		"remotion",
+		"screen-recording"
+	],
+	"license": "MIT",
+	"author": "Jonas Voisard",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/peufo/cademo.git"
+	},
+	"homepage": "https://github.com/peufo/cademo#readme",
+	"bugs": {
+		"url": "https://github.com/peufo/cademo/issues"
+	},
 	"type": "module",
 	"bin": {
 		"cademo": "./dist/cli.js"
@@ -27,7 +45,8 @@
 	"scripts": {
 		"build": "rm -rf dist && tsc -p tsconfig.build.json && cp src/editor/editor.html src/editor/editor.css dist/editor/ && chmod +x dist/cli.js",
 		"check": "tsc --noEmit",
-		"pack": "bun run build && mkdir -p .pack && bun pm pack --filename .pack/cademo.tgz"
+		"pack": "bun run build && mkdir -p .pack && bun pm pack --filename .pack/cademo.tgz",
+		"prepublishOnly": "bun run check && bun run build"
 	},
 	"peerDependencies": {
 		"@playwright/test": ">=1.50"

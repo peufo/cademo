@@ -91,7 +91,6 @@ export async function render(recDir: string, target: string, { crf = 23 }: { crf
 		'--bundle-cache=false',
 		`--crf=${crf}`,
 		'--codec=h264',
-		'--log=error',
 	])
 	await run('ffmpeg', ['-v', 'error', '-y', '-sseof', '-0.1', '-i', target, '-frames:v', '1', '-q:v', '3', target.replace(/\.mp4$/, '.jpg')])
 	console.log(`✔ ${target}`)

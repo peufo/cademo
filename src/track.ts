@@ -75,10 +75,13 @@ export function fillGaps(
 export function evaluateTrack(track: CameraTrack, viewport: { width: number; height: number }) {
 	const shots = fillGaps(track, viewport)
 
-	/** Le plan poussé selon son âge: vite au début, puis de plus en plus lentement. */
+	/**
+	 * Le plan poussé selon son âge: vite au début, puis de plus en plus lentement. La vue entière
+	 * ne l'est jamais: elle rognerait les marges de la page, que rien ne justifie de couper.
+	 */
 	const pushed = (shot: Shot, t: number): Camera => {
 		const age = Math.max(0, t - shot.start)
-		const push = shot.push ?? DEFAULT_PUSH
+		const push = shot.zoom > 1 ? (shot.push ?? DEFAULT_PUSH) : 0
 		return { x: shot.x, y: shot.y, zoom: shot.zoom * (1 + push * 4 * (1 - Math.exp(-age / 4))) }
 	}
 

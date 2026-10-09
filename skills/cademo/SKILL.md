@@ -89,17 +89,22 @@ geste (ou de son animation) et le départ de la main suivante** — laisser resp
 
 1. **Un plan par contexte, pas par geste.** La caméra ne bouge que quand le geste suivant ne tient
    plus dans le cadre. Typiquement 3–5 plans pour 20 s.
-2. **Zoom dosé**: ×1,2 à ×1,9, souvent ×1,4–1,5; en dessous, la vue entière. **Pas de gros plan
+2. **Zoom dosé**: ×1,35 à ×1,9, souvent ×1,4–1,5; en dessous, la vue entière (sauf pour montrer
+   un conteneur entier, dès ×1,2). **Pas de gros plan
    automatique**: `closeUp: true` seulement pour un clic qui le mérite vraiment.
 3. **Jamais un mouvement de caméra pendant une animation de l'interface** (volet, dialogue, page
    qui change): le clic qui la déclenche est filmé dans un plan déjà assez large pour contenir le
-   volet en largeur.
+   volet en largeur. Un clic qui change de page est filmé en vue entière.
 4. **La caméra bouge avec la main**: un changement de plan démarre avec le mouvement de souris
    vers le geste suivant et dure à peu près autant. Avant une bulle, la caméra est déjà en place.
-5. **Poussée discrète** (0,005/s). **Aucune coupe.** Ouverture et fin en vue entière.
+5. **Poussée discrète** (0,005/s), jamais sur la vue entière. **Aucune coupe.** Ouverture et fin en vue entière.
 6. **Le contexte reste dans le cadre**: le titre du volet, dialogue ou section du geste
    (`aria-labelledby`, sinon premier `h1`–`h4`/`legend` du conteneur) reste visible. Si un
    conteneur de l'app n'a pas de titre, le signaler: c'est aussi un défaut d'accessibilité.
+7. **Rien n'est tranché inutilement**: le conteneur du geste se montre entier, avec l'espace
+   qui le sépare du bord, dès qu'il tient dans un plan d'au moins ×1,2 (une carte sur toute la
+   largeur plutôt qu'une carte coupée). Un bord de cadre proche du bord de la page va jusqu'à lui
+   plutôt que de trancher l'en-tête ou la barre latérale qui y sont collés.
 
 Ces règles sont codées dans cademo (`src/render/camera.ts`, `src/record/director.ts`). Une
 critique de l'utilisateur sur une vidéo doit devenir une **règle générale** de cademo, pas un

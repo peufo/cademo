@@ -101,9 +101,10 @@ cademo list                                     # démos et leur état
   souffle ; l'image figée au-delà est coupée là où rien ne bouge (`freezedetect`), donc sans coupe
   visible. Pour chaque clic, la zone qui change (volet, dialogue) et la fin de son animation sont
   mesurées ; pour chaque geste, le titre de son conteneur est relevé.
-- **Caméra** (`src/render/camera.ts`) : une piste de plans — un plan par contexte (zoom ×1,2–1,9),
+- **Caméra** (`src/render/camera.ts`) : une piste de plans — un plan par contexte (zoom ×1,35–1,9, dès ×1,2 pour un conteneur entier),
   changements de plan synchronisés avec la main, jamais pendant une animation de l'interface, titre
-  du volet toujours dans le cadre, poussée discrète, aucune coupe.
+  du volet toujours dans le cadre, conteneur montré entier avec sa marge, bords de page jamais tranchés, poussée discrète, aucune
+  coupe.
 - **Éditeur** (`cademo edit`) : reprendre la piste à la main ; elle est écrite dans `camera.json`
   et ne vaut que pour cette prise.
 - **Rendu** : composition Remotion (CLI Remotion lancée sous Node), H.264, poster = dernière image.

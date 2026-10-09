@@ -234,9 +234,9 @@ export class Director {
 		const box = await this.reveal(target)
 		const point = await this.moveTo(center(box))
 		const context = await this.contextOf(target)
-		if (note) this.push({ ...noteEvent(box, note, 1.6), context })
+		if (note) this.push({ ...noteEvent(box, note, 1.6), ...context })
 		await sleep(100)
-		this.push({ type: 'click', t: now(), x: point.x, y: point.y, box, closeUp, context })
+		this.push({ type: 'click', t: now(), x: point.x, y: point.y, box, closeUp, ...context })
 		await this.page.mouse.down()
 		await sleep(70)
 		await this.page.mouse.up()
@@ -263,8 +263,38 @@ export class Director {
 			const base = 1000 / cps
 			await sleep(base * (0.6 + Math.random() * 0.8) + (char === ' ' ? base * 0.5 : 0))
 		}
-		this.push({ type: 'type', t, end: now(), box, context: await this.contextOf(target) })
+		this.push({ type: 'type', t, end: now(), box, ...(await this.contextOf(target)) })
 		if (pause === undefined) await this.settle(100)
+		else await sleep(pause)
+		this.active()
+	}
+
+	/**
+	 * Presse sur `from`, glisse jusqu'à `to` à la vitesse d'une main qui trace, et relâche: tracer
+	 * une plage, déplacer une carte. Pour la caméra, c'est un clic dont la cible couvre le trajet.
+	 */
+	async drag(
+		from: Target,
+		to: Target,
+		{ duration = 900, pause }: { duration?: number; pause?: number } = {}
+	) {
+		const start = await this.moveTo(from)
+		const end = 'x' in to ? to : center(await this.reveal(to))
+		const context = 'x' in from ? {} : await this.contextOf(from)
+		const box = {
+			x: Math.min(start.x, end.x),
+			y: Math.min(start.y, end.y),
+			width: Math.abs(end.x - start.x) || 1,
+			height: Math.abs(end.y - start.y) || 1,
+		}
+		await sleep(100)
+		this.push({ type: 'click', t: now(), x: start.x, y: start.y, box, ...context })
+		await this.page.mouse.down()
+		await sleep(120)
+		await this.moveTo(end, { duration })
+		await sleep(120)
+		await this.page.mouse.up()
+		if (pause === undefined) await this.settle(200)
 		else await sleep(pause)
 		this.active()
 	}
@@ -330,7 +360,7 @@ export class Director {
 		const box = await this.reveal(target)
 		const context = await this.contextOf(target)
 		this.compressIdle()
-		this.push({ ...noteEvent(box, text, ms / 1000), placement, context })
+		this.push({ ...noteEvent(box, text, ms / 1000), placement, ...context })
 		await sleep(Math.min(wait, ms))
 		this.active()
 	}
@@ -371,26 +401,36 @@ export class Director {
 	}
 
 	/**
-	 * Le titre du conteneur de la cible (dialogue, volet, section, formulaire): il dit où l'on est,
-	 * et la caméra le garde dans le cadre. Le plus proche conteneur titré l'emporte.
+	 * Le conteneur titré de la cible (dialogue, volet, section, formulaire) et son titre: le titre
+	 * dit où l'on est, le conteneur se montre entier avec sa marge. Le plus proche l'emporte.
 	 */
-	private async contextOf(target: Locator): Promise<Box | undefined> {
+	private async contextOf(target: Locator): Promise<{ context?: Box; container?: Box }> {
 		return target
 			.evaluate((el) => {
 				const containers =
 					'dialog, [role=dialog], [role=alertdialog], [aria-modal=true], aside, section, fieldset, form, article'
+				const box = (r: DOMRect) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
 				for (let c = el.closest(containers); c; c = c.parentElement?.closest(containers) ?? null) {
 					const labelledBy = c.getAttribute('aria-labelledby')
 					const title =
 						(labelledBy && document.getElementById(labelledBy.split(' ')[0])) ||
 						c.querySelector('h1, h2, h3, h4, [role=heading], legend')
 					const r = title?.getBoundingClientRect()
-					if (r && r.width > 0 && r.height > 0)
-						return { x: r.x, y: r.y, width: r.width, height: r.height }
+					if (!r || r.width === 0 || r.height === 0) continue
+					// Borné au viewport: une section plus haute que l'écran n'y entre que par sa partie
+					// visible.
+					const b = c.getBoundingClientRect()
+					const x = Math.max(0, b.x)
+					const y = Math.max(0, b.y)
+					const right = Math.min(innerWidth, b.right)
+					const bottom = Math.min(innerHeight, b.bottom)
+					const container =
+						right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : undefined
+					return { context: box(r), container }
 				}
-				return undefined
+				return {}
 			})
-			.catch(() => undefined)
+			.catch(() => ({}))
 	}
 
 	private async cursorAt({ x, y }: { x: number; y: number }): Promise<CursorKind> {

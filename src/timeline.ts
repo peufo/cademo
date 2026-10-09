@@ -20,13 +20,15 @@ export type TimelineEvent =
 			closeUp?: boolean
 			/** Le titre du volet, dialogue ou section qui contient la cible: le contexte à garder. */
 			context?: Box
+			/** Ce volet, dialogue ou section entier, borné au viewport: à montrer avec sa marge. */
+			container?: Box
 			/** La zone que le clic a fait changer (volet, dialogue, page), si elle est notable. */
 			effect?: Box
 			/** Fin de l'animation déclenchée par le clic, quand l'image redevient stable. */
 			settled?: number
 	  }
 	/** Une saisie clavier dans `box`, de `t` à `end`. */
-	| { type: 'type'; t: number; end: number; box: Box | null; context?: Box }
+	| { type: 'type'; t: number; end: number; box: Box | null; context?: Box; container?: Box }
 	/** Un cadrage imposé: une boîte, `null` pour la vue entière, `'auto'` pour rendre la main. */
 	| { type: 'focus'; t: number; box: Box | null | 'auto'; scale?: number }
 	| {
@@ -37,6 +39,7 @@ export type TimelineEvent =
 			text: string
 			placement?: 'top' | 'bottom' | 'left' | 'right'
 			context?: Box
+			container?: Box
 	  }
 	| { type: 'url'; t: number; url: string }
 

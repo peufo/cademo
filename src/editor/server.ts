@@ -78,8 +78,10 @@ export async function startEditor(
 				},
 			},
 			'/api/render': {
-				POST: async () => {
+				POST: async (req, server) => {
 					if (!render) return Response.json({ error: 'Rendu indisponible' }, { status: 400 })
+					// Le rendu dépasse largement les 10 s après lesquelles Bun coupe une requête muette.
+					server.timeout(req, 0)
 					try {
 						return Response.json({ path: await render() })
 					} catch (e) {

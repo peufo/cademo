@@ -1,6 +1,6 @@
 {
   "name": "cademo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vidéos de démo d'une app web, écrites comme des scénarios Playwright et montées automatiquement (caméra, curseur, rythme).",
   "keywords": [
     "demo",

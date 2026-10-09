@@ -23,6 +23,8 @@ const video = $<HTMLVideoElement>('video')
 video.src = '/raw.mp4'
 const source = $<HTMLCanvasElement>('source')
 const preview = $<HTMLCanvasElement>('preview')
+// Les deux vues gardent les proportions de l'enregistrement, sinon l'image est étirée.
+for (const canvas of [source, preview]) canvas.style.aspectRatio = `${vw} / ${vh}`
 const shotsLane = $('shots')
 const eventsLane = $('events')
 const ruler = $('ruler')
@@ -435,7 +437,9 @@ $('render').addEventListener('click', async () => {
 	const button = $<HTMLButtonElement>('render')
 	button.disabled = true
 	$('status').textContent = 'rendu en cours…'
-	const res = await fetch('/api/render', { method: 'POST' }).then((r) => r.json())
+	const res = await fetch('/api/render', { method: 'POST' })
+		.then((r) => r.json())
+		.catch((e: Error) => ({ error: e.message }))
 	button.disabled = false
 	$('status').textContent = res.error ? `échec du rendu: ${res.error}` : `rendu: ${res.path}`
 })

@@ -23,8 +23,6 @@ const video = $<HTMLVideoElement>('video')
 video.src = '/raw.mp4'
 const source = $<HTMLCanvasElement>('source')
 const preview = $<HTMLCanvasElement>('preview')
-// Les deux vues gardent les proportions de l'enregistrement, sinon l'image est étirée.
-for (const canvas of [source, preview]) canvas.style.aspectRatio = `${vw} / ${vh}`
 const shotsLane = $('shots')
 const eventsLane = $('events')
 const ruler = $('ruler')
@@ -114,10 +112,17 @@ function removeShot() {
 
 // --- dessin ----------------------------------------------------------------------------------
 
+/** Ajuste la toile à la place libre en gardant les proportions de l'enregistrement. */
 function fitCanvas(canvas: HTMLCanvasElement) {
-	const r = canvas.getBoundingClientRect()
-	const w = Math.round(r.width * devicePixelRatio)
-	const h = Math.round(r.height * devicePixelRatio)
+	const box = canvas.parentElement!
+	const title = canvas.previousElementSibling!.getBoundingClientRect()
+	const availW = box.clientWidth
+	const availH = box.clientHeight - title.height - 6
+	const s = Math.max(0, Math.min(availW / vw, availH / vh))
+	canvas.style.width = `${vw * s}px`
+	canvas.style.height = `${vh * s}px`
+	const w = Math.round(vw * s * devicePixelRatio)
+	const h = Math.round(vh * s * devicePixelRatio)
 	if (canvas.width !== w || canvas.height !== h) {
 		canvas.width = w
 		canvas.height = h

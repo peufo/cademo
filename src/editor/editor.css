@@ -100,10 +100,6 @@ h2 small {
 	color: var(--muted);
 }
 canvas {
-	flex: 1;
-	min-height: 0;
-	max-width: 100%;
-	aspect-ratio: 16 / 10;
 	align-self: center;
 	background: #000;
 	border-radius: 6px;

@@ -34,7 +34,7 @@ export async function init(root: string, { skill = false }: { skill?: boolean } 
 		console.log(`
 Ensuite:
   1. Régler ${CONFIG_FILE} (serveur, locale, origine affichée…).
-  2. Écrire une démo dans le dossier des démos, ou la demander à Claude Code (skill demo-video).
+  2. Écrire une démo dans le dossier des démos, ou la demander à Claude Code (skill cademo).
   3. bun run demo <id>        enregistre et rend la vidéo
      bun run demo:edit <id>   reprend la caméra à la main`)
 	}
@@ -135,21 +135,36 @@ async function addScripts(root: string, report: Report) {
 	report.done.push(`scripts ajoutés: ${added.map(([n]) => n).join(', ')}`)
 }
 
+/** Le dossier du skill dans le projet, et son ancien nom. */
+const SKILL_DIR = '.claude/skills/cademo'
+const OLD_SKILL_DIR = '.claude/skills/demo-video'
+
 async function installSkill(root: string, report: Report, force: boolean) {
-	const target = join(root, '.claude/skills/demo-video')
-	const source = join(packageRoot, 'skills/demo-video/SKILL.md')
+	await removeOldSkill(root, report)
+	const target = join(root, SKILL_DIR)
+	const source = join(packageRoot, 'skills/cademo/SKILL.md')
 	const exists = existsSync(join(target, 'SKILL.md'))
 	if (exists && !force) {
 		const same = readFileSync(join(target, 'SKILL.md'), 'utf8') === readFileSync(source, 'utf8')
-		return report.kept.push(
-			same ? 'skill demo-video à jour' : 'skill demo-video présent (cademo init --skill pour le mettre à jour)'
+		if (same) return report.kept.push('skill cademo à jour')
+		return report.warnings.push(
+			'skill cademo différent de celui du paquet: ancienne version ou retouche locale, que ' +
+				'`cademo init --skill` écrasera (les consignes propres au projet vont dans CLAUDE.md/AGENTS.md)'
 		)
 	}
-	// Un ancien lien symbolique vers les sources de l'outil laisse place à une copie.
-	if (existsSync(target) && lstatSync(target).isSymbolicLink()) await rm(target)
 	await mkdir(target, { recursive: true })
 	await copyFile(source, join(target, 'SKILL.md'))
-	report.done.push(`skill demo-video ${exists ? 'mis à jour' : 'installé'} dans .claude/skills/`)
+	report.done.push(`skill cademo ${exists ? 'mis à jour' : 'installé'} dans .claude/skills/`)
+}
+
+/** Le skill s'appelait `demo-video`: l'ancienne copie (ou l'ancien lien) ferait doublon. */
+async function removeOldSkill(root: string, report: Report) {
+	const old = join(root, OLD_SKILL_DIR)
+	const isLink = existsSync(old) && lstatSync(old).isSymbolicLink()
+	const file = join(old, 'SKILL.md')
+	if (!isLink && !(existsSync(file) && readFileSync(file, 'utf8').includes('cademo'))) return
+	await rm(old, { recursive: true })
+	report.done.push(`ancien skill ${OLD_SKILL_DIR} retiré (renommé cademo)`)
 }
 
 /**
@@ -163,10 +178,15 @@ async function prettierIgnoreSkill(root: string, report: Report) {
 		: {}
 	if (!configs.length && !pkg.prettier) return
 	const file = join(root, '.prettierignore')
-	const entry = '/.claude/skills/demo-video'
-	const current = existsSync(file) ? readFileSync(file, 'utf8') : ''
-	if (current.split('\n').some((l) => l.trim() === entry)) return
-	await writeFile(file, `${current}${current && !current.endsWith('\n') ? '\n' : ''}${entry}\n`)
+	const entry = `/${SKILL_DIR}`
+	const lines = (existsSync(file) ? readFileSync(file, 'utf8') : '').split('\n')
+	if (lines.some((l) => l.trim() === entry)) return
+	// L'entrée de l'ancien nom est remplacée sur place.
+	const old = lines.findIndex((l) => l.trim() === `/${OLD_SKILL_DIR}`)
+	if (old >= 0) lines[old] = entry
+	else lines.splice(lines.at(-1) === '' ? -1 : lines.length, 0, entry)
+	const content = lines.join('\n')
+	await writeFile(file, content.endsWith('\n') ? content : content + '\n')
 	report.done.push(`${entry} ajouté au .prettierignore`)
 }
 

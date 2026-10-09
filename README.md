@@ -29,7 +29,7 @@ bunx cademo init
 - crée `demos/example.demo.ts` s'il n'y a aucune démo ;
 - ignore le dossier de travail dans `.gitignore` ;
 - ajoute les scripts `demo` (`cademo make`) et `demo:edit` (`cademo edit`) ;
-- installe le skill Claude Code `demo-video` dans `.claude/skills/` (`cademo init --skill` pour le
+- installe le skill Claude Code `cademo` dans `.claude/skills/` (`cademo init --skill` pour le
   mettre à jour).
 
 ## Ce que le projet contient
@@ -77,7 +77,7 @@ demo('create-team', async ({ page, director }) => {
 
 `demo` est le `test` de Playwright avec une fixture `director` ; le titre est l'identifiant de la
 vidéo. Gestes : `click`, `type`, `hover`, `press`, `select`, `scrollTo`, `note` (bulle), `focus`
-(cadrage imposé), `skip` (passage lent compressé), `goto`, `pause`. Le skill `demo-video` détaille
+(cadrage imposé), `skip` (passage lent compressé), `goto`, `pause`. Le skill `cademo` détaille
 l'API et les règles d'écriture.
 
 ## CLI

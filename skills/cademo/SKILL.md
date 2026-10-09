@@ -1,5 +1,5 @@
 ---
-name: demo-video
+name: cademo
 description: Crée ou met à jour une vidéo de démonstration d'une fonctionnalité de l'app (landing, docs) avec cademo — un scénario Playwright rejouable, filmé et monté automatiquement (caméra, curseur, rythme, bulles). À utiliser quand on demande une vidéo de démo, une capture animée d'une fonctionnalité, ou de régénérer les vidéos après un changement d'interface.
 ---
 
@@ -12,6 +12,10 @@ main: pour changer la vidéo, on change le scénario, et on relance.
 
 Lire `cademo.config.ts` d'abord: dossiers (`demos`, `output`, `workDir`), serveur, locale.
 Si le projet n'a pas de `cademo.config.ts`: `bunx cademo init`.
+
+Ce skill est fourni par cademo et remplacé à chaque mise à jour: ne pas le modifier dans le
+projet. Ce qui est propre au projet (publication des vidéos, intégration dans l'app) est dans ses
+propres consignes (`CLAUDE.md`, `AGENTS.md`…): les lire aussi, elles complètent celles-ci.
 
 ## 1. Storyboard — à valider avec l'utilisateur avant d'écrire du code
 
@@ -124,7 +128,8 @@ Diagnostics: `<workDir>/<id>/raw.mp4` montre où un scénario échoué s'est arr
 `<workDir>/test-results/` contient la trace Playwright, `frames.json` la cadence de capture
 (moins de ~20 images/s pendant une saisie: le navigateur rame).
 
-Enfin, montrer à l'utilisateur le chemin du MP4; si c'est une nouvelle vidéo, proposer de
+Enfin, montrer à l'utilisateur le chemin du MP4. La publication et l'intégration dans l'app
+suivent les consignes du projet; s'il n'en a pas et que c'est une nouvelle vidéo, proposer de
 l'intégrer là où l'app affiche ses démos.
 
 ## Options de rendu

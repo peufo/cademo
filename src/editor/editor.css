@@ -1,0 +1,259 @@
+:root {
+	--bg: #101217;
+	--panel: #171a21;
+	--line: #262b36;
+	--text: #e7e9ee;
+	--muted: #8f98a8;
+	--accent: #4f8cff;
+	--close: #f59e0b;
+	--danger: #f0645a;
+	color-scheme: dark;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font: 13px/1.4 system-ui, -apple-system, sans-serif;
+	display: grid;
+	grid-template-rows: auto 1fr auto auto auto;
+	height: 100vh;
+	overflow: hidden;
+}
+header {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 10px 16px;
+	border-bottom: 1px solid var(--line);
+	background: var(--panel);
+}
+.group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.right {
+	margin-left: auto;
+}
+button {
+	background: #222733;
+	color: var(--text);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 5px 10px;
+	font: inherit;
+	cursor: pointer;
+}
+button:hover:not(:disabled) {
+	border-color: var(--muted);
+}
+button:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+button.primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+.time {
+	font-variant-numeric: tabular-nums;
+	color: var(--muted);
+	min-width: 60px;
+}
+.badge {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 99px;
+	background: #222733;
+	color: var(--muted);
+}
+.badge.edited {
+	background: rgba(79, 140, 255, 0.18);
+	color: var(--accent);
+}
+.status {
+	color: var(--muted);
+}
+main {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+	padding: 12px 16px 0;
+	min-height: 0;
+}
+.view {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+h2 {
+	font-size: 12px;
+	font-weight: 600;
+	margin: 0 0 6px;
+}
+h2 small {
+	font-weight: 400;
+	color: var(--muted);
+}
+canvas {
+	flex: 1;
+	min-height: 0;
+	max-width: 100%;
+	aspect-ratio: 16 / 10;
+	align-self: center;
+	background: #000;
+	border-radius: 6px;
+}
+#source {
+	cursor: crosshair;
+}
+aside {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 10px 16px 0;
+	color: var(--muted);
+}
+aside .hint {
+	color: var(--muted);
+	font-style: italic;
+}
+aside input:disabled,
+aside button:disabled {
+	opacity: 0.4;
+}
+aside input {
+	width: 64px;
+	background: #0c0e12;
+	color: var(--text);
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	padding: 3px 5px;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+}
+#timeline {
+	position: relative;
+	margin: 12px 16px 0;
+	padding: 0 0 8px;
+	user-select: none;
+}
+.lane {
+	position: relative;
+	height: 30px;
+	background: var(--panel);
+	border-radius: 4px;
+}
+.lane-label {
+	font-size: 11px;
+	color: var(--muted);
+	margin: 6px 0 3px;
+}
+.lane-label small {
+	opacity: 0.7;
+}
+.ruler {
+	height: 20px;
+	background: none;
+	cursor: pointer;
+}
+.tick {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	border-left: 1px solid var(--line);
+	font-size: 10px;
+	color: var(--muted);
+	padding-left: 3px;
+}
+.events {
+	height: 22px;
+}
+.ev {
+	position: absolute;
+	top: 5px;
+	height: 12px;
+	border-radius: 6px;
+	background: #3b4252;
+}
+.ev.click {
+	width: 12px;
+	margin-left: -6px;
+	background: #c7cbd4;
+}
+.ev.type {
+	background: #5b6b8a;
+}
+.ev.note {
+	background: #8b5cf6;
+}
+.shots {
+	height: 40px;
+}
+.shot {
+	position: absolute;
+	top: 3px;
+	bottom: 3px;
+	background: rgba(79, 140, 255, 0.35);
+	border: 1px solid var(--accent);
+	border-radius: 4px;
+	overflow: hidden;
+	cursor: grab;
+	font-size: 11px;
+	display: flex;
+	align-items: center;
+}
+.shot.close {
+	background: rgba(245, 158, 11, 0.3);
+	border-color: var(--close);
+}
+.shot.selected {
+	outline: 2px solid #fff;
+	z-index: 2;
+}
+.shot .ramp {
+	position: absolute;
+	inset: 0 auto 0 0;
+	background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.18) 0 3px, transparent 3px 7px);
+	pointer-events: none;
+}
+.shot .label {
+	position: relative;
+	padding-left: 6px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+.shot .edge {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 7px;
+	cursor: ew-resize;
+}
+.shot .edge.l {
+	left: 0;
+}
+.shot .edge.r {
+	right: 0;
+}
+#playhead {
+	position: absolute;
+	top: 0;
+	bottom: 8px;
+	width: 2px;
+	margin-left: -1px;
+	background: var(--danger);
+	pointer-events: none;
+}
+footer {
+	padding: 8px 16px 12px;
+	color: var(--muted);
+	font-size: 11px;
+}
+video {
+	display: none;
+}

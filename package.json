@@ -1,0 +1,48 @@
+{
+	"name": "cademo",
+	"version": "0.1.0",
+	"description": "Vidéos de démo d'une app web, écrites comme des scénarios Playwright et montées automatiquement (caméra, curseur, rythme).",
+	"type": "module",
+	"bin": {
+		"cademo": "./dist/cli.js"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./playwright": {
+			"types": "./dist/playwright.d.ts",
+			"default": "./dist/playwright.js"
+		}
+	},
+	"files": [
+		"dist",
+		"skills",
+		"README.md"
+	],
+	"engines": {
+		"bun": ">=1.2"
+	},
+	"scripts": {
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && cp src/editor/editor.html src/editor/editor.css dist/editor/ && chmod +x dist/cli.js",
+		"check": "tsc --noEmit",
+		"pack": "bun run build && mkdir -p .pack && bun pm pack --filename .pack/cademo.tgz"
+	},
+	"peerDependencies": {
+		"@playwright/test": ">=1.50"
+	},
+	"dependencies": {
+		"@remotion/cli": "4.0.534",
+		"@remotion/google-fonts": "4.0.534",
+		"react": "^19.1.0",
+		"react-dom": "^19.1.0",
+		"remotion": "4.0.534"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.59.1",
+		"@types/bun": "latest",
+		"@types/react": "^19.1.0",
+		"typescript": "^5.9.0"
+	}
+}

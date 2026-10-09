@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Éditeur de caméra</title>
+		<link rel="stylesheet" href="/editor.css" />
+	</head>
+	<body>
+		<header>
+			<strong id="title">Caméra</strong>
+			<span id="badge" class="badge"></span>
+			<div class="group">
+				<button id="play" title="Lecture / pause (espace)">▶︎</button>
+				<span id="time" class="time">0.00 s</span>
+			</div>
+			<div class="group">
+				<button id="add" title="Nouveau plan au point de lecture, ou coupe le plan en deux (N)">+ Plan</button>
+				<button id="remove" title="Supprimer le plan choisi (⌫)" disabled>Supprimer</button>
+				<button id="undo" title="Annuler (⌘Z)">Annuler</button>
+			</div>
+			<div class="group right">
+				<span id="status" class="status"></span>
+				<button id="reset" title="Repartir de la caméra automatique">Automatique</button>
+				<button id="save" class="primary" title="Enregistrer camera.json (⌘S)">Enregistrer</button>
+				<button id="render" hidden>Rendre</button>
+			</div>
+		</header>
+
+		<main>
+			<section class="view">
+				<h2>Source <small>— le cadre bleu est le plan choisi: glisser pour le déplacer, coins ou molette pour zoomer</small></h2>
+				<canvas id="source"></canvas>
+			</section>
+			<section class="view">
+				<h2>Aperçu <small>— ce que donnera le rendu</small></h2>
+				<canvas id="preview"></canvas>
+			</section>
+		</main>
+
+		<aside id="inspector">
+			<span id="hint" class="hint">Choisis un plan dans la piste Caméra pour le régler.</span>
+			<label>Début <input id="f-start" type="number" step="0.05" /> s</label>
+			<label>Fin <input id="f-end" type="number" step="0.05" /> s</label>
+			<label>Zoom <input id="f-zoom" type="number" step="0.05" min="1" /> ×</label>
+			<label>Transition <input id="f-transition" type="number" step="0.05" min="0" /> s</label>
+			<label>Poussée <input id="f-push" type="number" step="0.005" min="0" /> /s</label>
+			<button id="overview" title="Ce plan montre la vue entière">Vue entière</button>
+		</aside>
+
+		<section id="timeline">
+			<div id="ruler" class="lane ruler"></div>
+			<div class="lane-label">Gestes</div>
+			<div id="events" class="lane events"></div>
+			<div class="lane-label">Caméra <small>double-clic: nouveau plan</small></div>
+			<div id="shots" class="lane shots"></div>
+			<div id="playhead"></div>
+		</section>
+
+		<footer>
+			Espace lecture · ←/→ ±0,1 s (⇧ ±1 s) · N nouveau plan / couper · ⌫ supprimer · ⌘Z annuler · ⌘S
+			enregistrer · bandes hachurées = durée de la transition d'entrée
+		</footer>
+
+		<video id="video" muted preload="auto" playsinline></video>
+		<script type="module" src="/editor.js"></script>
+	</body>
+</html>

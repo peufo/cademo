@@ -6,6 +6,9 @@
 
 export type Box = { x: number; y: number; width: number; height: number }
 
+/** L'épaisseur des barres collées aux bords du viewport (en-tête, barre latérale), en px. */
+export type Edges = { top: number; right: number; bottom: number; left: number }
+
 export type CursorKind = 'arrow' | 'pointer' | 'text'
 
 export type TimelineEvent =
@@ -22,13 +25,26 @@ export type TimelineEvent =
 			context?: Box
 			/** Ce volet, dialogue ou section entier, borné au viewport: à montrer avec sa marge. */
 			container?: Box
+			/** Les barres de la page, qu'un bord de cadre ne doit pas trancher. */
+			bars?: Edges
+			/** La barre d'actions flottante visible (enregistrer, annuler…), à garder dans le cadre. */
+			toolbar?: Box
 			/** La zone que le clic a fait changer (volet, dialogue, page), si elle est notable. */
 			effect?: Box
 			/** Fin de l'animation déclenchée par le clic, quand l'image redevient stable. */
 			settled?: number
 	  }
 	/** Une saisie clavier dans `box`, de `t` à `end`. */
-	| { type: 'type'; t: number; end: number; box: Box | null; context?: Box; container?: Box }
+	| {
+			type: 'type'
+			t: number
+			end: number
+			box: Box | null
+			context?: Box
+			container?: Box
+			bars?: Edges
+			toolbar?: Box
+	  }
 	/** Un cadrage imposé: une boîte, `null` pour la vue entière, `'auto'` pour rendre la main. */
 	| { type: 'focus'; t: number; box: Box | null | 'auto'; scale?: number }
 	| {
@@ -40,6 +56,8 @@ export type TimelineEvent =
 			placement?: 'top' | 'bottom' | 'left' | 'right'
 			context?: Box
 			container?: Box
+			bars?: Edges
+			toolbar?: Box
 	  }
 	| { type: 'url'; t: number; url: string }
 

@@ -177,13 +177,18 @@ async function propsFile(dir: string) {
 	return file
 }
 
-/** Une piste éditée ne vaut que pour la prise sur laquelle elle a été faite. */
+/**
+ * Une piste éditée ne vaut que pour la prise sur laquelle elle a été faite: écrite après elle, et
+ * de la même durée. Deux prises d'un même scénario durent souvent à quelques centièmes près.
+ */
 function cameraState(dir: string) {
 	const camera = join(dir, 'camera.json')
-	if (!existsSync(camera) || !existsSync(join(dir, 'timeline.json'))) return null
+	const timelinePath = join(dir, 'timeline.json')
+	if (!existsSync(camera) || !existsSync(timelinePath)) return null
 	const track = JSON.parse(readFileSync(camera, 'utf8'))
-	const timeline = JSON.parse(readFileSync(join(dir, 'timeline.json'), 'utf8'))
-	return Math.abs(track.duration - timeline.duration) < 0.05
+	const timeline = JSON.parse(readFileSync(timelinePath, 'utf8'))
+	const after = statSync(camera).mtimeMs >= statSync(timelinePath).mtimeMs
+	return after && Math.abs(track.duration - timeline.duration) < 0.05
 		? 'caméra éditée'
 		: 'caméra éditée sur une ancienne prise (ignorée)'
 }

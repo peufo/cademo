@@ -9,7 +9,7 @@ import {
 	useVideoConfig,
 } from 'remotion'
 import { loadFont } from '@remotion/google-fonts/Barlow'
-import { defaultRenderOptions, type RenderOptions, type Timeline } from '../timeline.ts'
+import { defaultRenderOptions, type Box, type RenderOptions, type Timeline } from '../timeline.ts'
 import { autoTrack, type Camera } from './camera.ts'
 import { evaluateTrack, type CameraTrack } from '../track.ts'
 import { createLayout, type Layout } from './layout.ts'
@@ -206,6 +206,32 @@ function Cursor({
 	)
 }
 
+/**
+ * Une bulle posée sur un formulaire en cache les champs. Quand le conteneur de la cible (volet,
+ * dialogue) laisse à l'image la place de la bulle sur un côté, elle s'y range, à la hauteur de la
+ * cible, du côté le plus proche d'elle: le halo dit de quoi elle parle.
+ */
+function outsideContainer(
+	layout: Layout,
+	cam: Camera,
+	e: { box: Box; container?: Box },
+	width: number
+): { side: 'left' | 'right'; edge: number } | null {
+	if (!e.container) return null
+	const c = e.container
+	const cl = layout.project(cam, c)
+	const cr = layout.project(cam, { x: c.x + c.width, y: c.y + c.height })
+	const tl = layout.project(cam, e.box)
+	const br = layout.project(cam, { x: e.box.x + e.box.width, y: e.box.y + e.box.height })
+	const sides = [
+		{ side: 'left' as const, edge: cl.x, room: cl.x, distance: tl.x - cl.x },
+		{ side: 'right' as const, edge: cr.x, room: layout.W - cr.x, distance: cr.x - br.x },
+	]
+		.filter((s) => s.room >= width)
+		.sort((a, b) => a.distance - b.distance)
+	return sides[0] ?? null
+}
+
 function Notes({
 	layout,
 	timeline,
@@ -236,12 +262,17 @@ function Notes({
 				// La bulle grandit avec l'image, moins vite qu'elle, pour rester lisible sans l'envahir.
 				const font = layout.H * 0.022 * Math.sqrt(cam.zoom)
 				const gap = font * 0.9
-				const placement = e.placement ?? (tl.y > font * 4 ? 'top' : 'bottom')
 				// Largeur estimée, pour ne jamais la laisser déborder du cadre.
 				const half = (e.text.length * font * 0.55) / 2 + font
+				const outside = e.placement ? null : outsideContainer(layout, cam, e, half * 2 + gap * 2)
+				const placement = e.placement ?? (tl.y > font * 4 ? 'top' : 'bottom')
 				const cx = Math.min(Math.max((tl.x + br.x) / 2, half + gap), layout.W - half - gap)
-				const pos: React.CSSProperties =
-					placement === 'top'
+				const cy = (tl.y + br.y) / 2
+				const pos: React.CSSProperties = outside
+					? outside.side === 'left'
+						? { left: outside.edge - gap, top: cy, transform: 'translate(-100%, -50%)' }
+						: { left: outside.edge + gap, top: cy, transform: 'translate(0, -50%)' }
+					: placement === 'top'
 						? { left: cx, top: tl.y - gap, transform: 'translate(-50%, -100%)' }
 						: placement === 'bottom'
 							? { left: cx, top: br.y + gap, transform: 'translate(-50%, 0)' }

@@ -103,7 +103,7 @@ cademo list                                     # démos et leur état
   mesurées ; pour chaque geste, le titre de son conteneur est relevé.
 - **Caméra** (`src/render/camera.ts`) : une piste de plans — un plan par contexte (zoom ×1,35–1,9, dès ×1,2 pour un conteneur entier),
   changements de plan synchronisés avec la main, jamais pendant une animation de l'interface, titre
-  du volet toujours dans le cadre, conteneur montré entier avec sa marge, bords de page jamais tranchés, poussée discrète, aucune
+  du volet toujours dans le cadre, conteneur montré entier avec sa marge, barres de la page jamais tranchées, barre d'actions flottante toujours visible, poussée discrète, aucune
   coupe.
 - **Éditeur** (`cademo edit`) : reprendre la piste à la main ; elle est écrite dans `camera.json`
   et ne vaut que pour cette prise.

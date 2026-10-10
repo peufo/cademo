@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Box, CursorKind, RenderOptions, Timeline, TimelineEvent } from '../timeline.ts'
+import type { Box, CursorKind, Edges, RenderOptions, Timeline, TimelineEvent } from '../timeline.ts'
 import { detectClickEffects } from './effects.ts'
 import { Screencast, createTimeMap, encodeFrames, frozenRanges, type Skip } from './screencast.ts'
 
@@ -404,9 +404,55 @@ export class Director {
 	 * Le conteneur titré de la cible (dialogue, volet, section, formulaire) et son titre: le titre
 	 * dit où l'on est, le conteneur se montre entier avec sa marge. Le plus proche l'emporte.
 	 */
-	private async contextOf(target: Locator): Promise<{ context?: Box; container?: Box }> {
+	private async contextOf(
+		target: Locator
+	): Promise<{ context?: Box; container?: Box; bars?: Edges; toolbar?: Box }> {
 		return target
 			.evaluate((el) => {
+				// Les barres de la page: un repère posé contre un bord (à sa marge près), qui en couvre
+				// au moins la moitié.
+				const edge = 16
+				const bars = { top: 0, right: 0, bottom: 0, left: 0 }
+				const landmarks =
+					'header, footer, nav, aside, [role=banner], [role=navigation], [role=contentinfo]'
+				for (const bar of document.querySelectorAll(landmarks)) {
+					const r = bar.getBoundingClientRect()
+					if (r.width === 0 || r.height === 0) continue
+					const wide = r.width >= innerWidth / 2 && r.height <= innerHeight / 4
+					const tall = r.height >= innerHeight / 2 && r.width <= innerWidth / 4
+					if (wide && r.top <= edge) bars.top = Math.max(bars.top, r.bottom)
+					if (wide && r.bottom >= innerHeight - edge)
+						bars.bottom = Math.max(bars.bottom, innerHeight - r.top)
+					if (tall && r.left <= edge) bars.left = Math.max(bars.left, r.right)
+					if (tall && r.right >= innerWidth - edge)
+						bars.right = Math.max(bars.right, innerWidth - r.left)
+				}
+				// La barre d'actions flottante: fixée à l'écran et porteuse d'un bouton, hors des
+				// notifications, des dialogues et des repères de page. Masquée par un dialogue ouvert.
+				let toolbar: { x: number; y: number; width: number; height: number } | undefined
+				const modal = document.querySelector('dialog[open], [aria-modal=true]')
+				const excluded =
+					'dialog, [role=dialog], [aria-live], [role=status], [role=alert], [role=log], ' + landmarks
+				const seen = new Set<Element>()
+				for (const button of modal ? [] : document.querySelectorAll('button')) {
+					let fixed: Element | null = button
+					while (fixed && getComputedStyle(fixed).position !== 'fixed') fixed = fixed.parentElement
+					if (!fixed || seen.has(fixed) || fixed.closest(excluded)) continue
+					seen.add(fixed)
+					const r = fixed.getBoundingClientRect()
+					if (r.width === 0 || r.height === 0 || r.width * r.height > innerWidth * innerHeight / 4)
+						continue
+					if (r.bottom <= 0 || r.top >= innerHeight) continue
+					const b = toolbar ?? { x: r.x, y: r.y, width: r.width, height: r.height }
+					const x = Math.min(b.x, r.x)
+					const y = Math.min(b.y, r.y)
+					toolbar = {
+						x,
+						y,
+						width: Math.max(b.x + b.width, r.right) - x,
+						height: Math.max(b.y + b.height, r.bottom) - y,
+					}
+				}
 				const containers =
 					'dialog, [role=dialog], [role=alertdialog], [aria-modal=true], aside, section, fieldset, form, article'
 				const box = (r: DOMRect) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
@@ -426,9 +472,9 @@ export class Director {
 					const bottom = Math.min(innerHeight, b.bottom)
 					const container =
 						right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : undefined
-					return { context: box(r), container }
+					return { context: box(r), container, bars, toolbar }
 				}
-				return {}
+				return { bars, toolbar }
 			})
 			.catch(() => ({}))
 	}

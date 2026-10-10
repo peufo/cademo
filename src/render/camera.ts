@@ -1,4 +1,4 @@
-import type { Box, Timeline, TimelineEvent } from '../timeline.ts'
+import type { Box, Edges, Timeline, TimelineEvent } from '../timeline.ts'
 import type { Camera, CameraTrack, Shot } from '../track.ts'
 
 export type { Camera }
@@ -30,8 +30,10 @@ export type { Camera }
  *    qu'il tient dans un plan d'au moins ×1,2: une carte sur toute la largeur vaut mieux qu'une
  *    carte tranchée. Sans conteneur entier, un plan à peine zoomé (moins de ×1,35) ne
  *    rapprocherait rien: il ne ferait que rogner les marges de la page, autant la vue entière.
- *    Et un bord de cadre qui tomberait à quelques pixels du bord de la page va jusqu'à lui, plutôt
- *    que de trancher l'en-tête ou la barre latérale qui y sont collés.
+ *    Et un bord de cadre ne tranche pas une barre de la page (en-tête, barre latérale, relevées à
+ *    l'enregistrement): le cadre glisse pour la laisser dehors, ou à défaut la prend entière.
+ * 8. **Les actions restent visibles.** Une barre d'actions flottante (enregistrer, annuler) dit ce
+ *    que le geste prépare: elle reste dans le cadre, quitte à ne plus zoomer qu'à ×1,05.
  */
 
 export type CameraOptions = {
@@ -45,7 +47,8 @@ const MIN_ZOOM = 1.35 // en dessous, le plan rogne les marges de la page sans ri
 const PAD = 80 // marge autour des gestes cadrés, en px du viewport
 const CONTAINER_PAD = 32 // marge gardée autour d'un conteneur montré entier
 const CONTAINER_ZOOM = 1.2 // un conteneur entre entier tant que le plan garde ce zoom
-const SNAP = 100 // un bord de cadre plus proche que cela d'un bord de page va jusqu'à lui
+const TOOLBAR_PAD = 16 // marge gardée autour d'une barre d'actions flottante
+const TOOLBAR_ZOOM = 1.05 // une barre d'actions entre dans le cadre tant que le plan garde ce zoom
 const EFFECT_PAD = 170 // marge, en largeur, autour d'un volet qui s'ouvre ou se ferme
 const EFFECT_AREA = 0.06 // part de l'écran qu'un clic doit changer pour compter comme une animation
 const ANIMATION = 0.8 // durée supposée d'une animation, quand l'enregistrement ne l'a pas mesurée
@@ -92,6 +95,10 @@ type Beat = {
 	note?: number
 	/** Le clic change de page: ce qui suit est un autre endroit, filmé dans un autre plan. */
 	navigation?: boolean
+	/** Les barres de la page au moment du geste. */
+	bars?: Edges
+	/** La barre d'actions flottante visible au moment du geste. */
+	toolbar?: Box
 }
 
 export function beats(timeline: Timeline): Beat[] {
@@ -135,6 +142,8 @@ export function beats(timeline: Timeline): Beat[] {
 				current.box = union(current.box, note.box)
 				if (note.context) current.box = union(current.box, note.context)
 				if (note.container) current.container = note.container
+				if (note.bars) current.bars = note.bars
+				if (note.toolbar) current.toolbar = note.toolbar
 				current.t = Math.min(current.t, note.t)
 				current.note = note.t
 				note = undefined
@@ -144,6 +153,8 @@ export function beats(timeline: Timeline): Beat[] {
 			if (e.box) current.box = union(current.box, e.box)
 			if (e.context) current.box = union(current.box, e.context)
 			if (e.container) current.container = e.container
+			if (e.bars) current.bars = e.bars
+			if (e.toolbar) current.toolbar = e.toolbar
 			current.end = Math.max(current.end, e.t + 0.3)
 			current.click = e
 			if (e.effect && (e.effect.width * e.effect.height) / (width * height) >= EFFECT_AREA) {
@@ -154,6 +165,8 @@ export function beats(timeline: Timeline): Beat[] {
 			if (e.box) current.box = union(current.box, e.box)
 			if (e.context) current.box = union(current.box, e.context)
 			if (e.container) current.container = e.container
+			if (e.bars) current.bars = e.bars
+			if (e.toolbar) current.toolbar = e.toolbar
 			current.end = Math.max(current.end, e.end)
 		}
 	}
@@ -166,6 +179,8 @@ export function beats(timeline: Timeline): Beat[] {
 			move: 0,
 			box: note.context ? union(note.box, note.context) : note.box,
 			container: note.container,
+			bars: note.bars,
+			toolbar: note.toolbar,
 			note: note.t,
 		})
 	return out
@@ -178,12 +193,22 @@ export function autoTrack(timeline: Timeline, options: CameraOptions): CameraTra
 	type Bounds = { x0: number; x1: number; y0: number; y1: number }
 	const zoomOf = (b: Bounds) =>
 		Math.min(options.maxZoom, vw / (b.x1 - b.x0), vh / (b.y1 - b.y0))
+	// Une marge au-delà du bord de la page ne montre rien: le rendu ne filme pas hors de la page.
+	const inPage = (b: Bounds): Bounds => ({
+		x0: Math.max(0, b.x0),
+		x1: Math.min(vw, b.x1),
+		y0: Math.max(0, b.y0),
+		y1: Math.min(vh, b.y1),
+	})
+
+	type Around = { effect?: Box; container?: Box; bars?: Edges; toolbar?: Box }
 
 	/**
-	 * Le cadrage qui montre `box`, `effect` en largeur (un volet prend toute la hauteur), et
-	 * `container` entier avec sa marge, axe par axe, tant que le plan n'y perd pas trop.
+	 * Le cadrage qui montre `box`, `effect` en largeur (un volet prend toute la hauteur),
+	 * `container` entier avec sa marge, axe par axe, tant que le plan n'y perd pas trop, et la
+	 * barre d'actions `toolbar`, quitte à presque reculer jusqu'à la vue entière.
 	 */
-	const framing = (box: Box, effect?: Box, container?: Box): Camera => {
+	const framing = (box: Box, { effect, container, bars, toolbar }: Around = {}): Camera => {
 		let b: Bounds = {
 			x0: box.x - PAD,
 			x1: box.x + box.width + PAD,
@@ -194,6 +219,13 @@ export function autoTrack(timeline: Timeline, options: CameraOptions): CameraTra
 			// Toute la largeur, du geste au volet: le bouton cliqué et ce qu'il ouvre.
 			b.x0 = Math.min(b.x0, effect.x - EFFECT_PAD)
 			b.x1 = Math.max(b.x1, effect.x + effect.width + EFFECT_PAD)
+		}
+		if (bars) {
+			// La marge autour du geste ne déborde pas sur une barre, qui restera hors du cadre.
+			if (box.y >= bars.top) b.y0 = Math.max(b.y0, bars.top)
+			if (box.x >= bars.left) b.x0 = Math.max(b.x0, bars.left)
+			if (box.y + box.height <= vh - bars.bottom) b.y1 = Math.min(b.y1, vh - bars.bottom)
+			if (box.x + box.width <= vw - bars.right) b.x1 = Math.min(b.x1, vw - bars.right)
 		}
 		let whole = false
 		if (container) {
@@ -213,33 +245,64 @@ export function autoTrack(timeline: Timeline, options: CameraOptions): CameraTra
 				b.y0 <= container.y &&
 				b.y1 >= container.y + container.height
 		}
-		const zoom = zoomOf(b)
 		// Un conteneur montré entier justifie un plan peu zoomé: il rapproche une carte, pas des marges.
-		if (zoom < (whole ? CONTAINER_ZOOM : MIN_ZOOM)) return overview
-		return snapToEdges(b, zoom)
+		let floor = whole ? CONTAINER_ZOOM : MIN_ZOOM
+		if (toolbar) {
+			const t = inPage({
+				x0: Math.min(b.x0, toolbar.x - TOOLBAR_PAD),
+				x1: Math.max(b.x1, toolbar.x + toolbar.width + TOOLBAR_PAD),
+				y0: Math.min(b.y0, toolbar.y - TOOLBAR_PAD),
+				y1: Math.max(b.y1, toolbar.y + toolbar.height + TOOLBAR_PAD),
+			})
+			if (zoomOf(t) >= TOOLBAR_ZOOM) {
+				b = t
+				floor = TOOLBAR_ZOOM
+			}
+		}
+		b = inPage(b)
+		const zoom = zoomOf(b)
+		if (zoom < floor) return overview
+		return clearOfBars(b, zoom, bars)
 	}
 
 	/**
-	 * Un cadre qui s'arrête à quelques pixels d'un bord de la page tranche ce qui y est collé (un
-	 * en-tête, une barre latérale): il va jusqu'au bord, tant que ce qu'il cadre y tient encore.
+	 * Un bord de cadre qui tomberait dans une barre de la page (en-tête, barre latérale) la
+	 * trancherait: le cadre glisse pour la laisser dehors, tant que ce qu'il montre y tient encore;
+	 * sinon il la prend entière, jusqu'au bord de la page.
 	 */
-	const snapToEdges = (b: Bounds, zoom: number): Camera => {
+	const clearOfBars = (b: Bounds, zoom: number, bars?: Edges): Camera => {
+		const axis = (
+			center: number,
+			size: number,
+			page: number,
+			[lo, hi]: [number, number],
+			[start, end]: [number, number]
+		) => {
+			const near = center - size / 2
+			const far = center + size / 2
+			if (near > 0 && near < start) {
+				if (hi <= start + size) return start + size / 2
+				if (hi <= size) return size / 2
+			} else if (far < page && far > page - end) {
+				if (lo >= page - end - size) return page - end - size / 2
+				if (lo >= page - size) return page - size / 2
+			}
+			return center
+		}
 		const w = vw / zoom
 		const h = vh / zoom
-		let x = (b.x0 + b.x1) / 2
-		let y = (b.y0 + b.y1) / 2
-		if (x - w / 2 > 0 && x - w / 2 < SNAP && b.x1 <= w) x = w / 2
-		else if (x + w / 2 < vw && x + w / 2 > vw - SNAP && b.x0 >= vw - w) x = vw - w / 2
-		if (y - h / 2 > 0 && y - h / 2 < SNAP && b.y1 <= h) y = h / 2
-		else if (y + h / 2 < vh && y + h / 2 > vh - SNAP && b.y0 >= vh - h) y = vh - h / 2
-		return { x, y, zoom }
+		return {
+			x: axis((b.x0 + b.x1) / 2, w, vw, [b.x0, b.x1], [bars?.left ?? 0, bars?.right ?? 0]),
+			y: axis((b.y0 + b.y1) / 2, h, vh, [b.y0, b.y1], [bars?.top ?? 0, bars?.bottom ?? 0]),
+			zoom,
+		}
 	}
 
 	// --- plans: un par contexte ----------------------------------------------------------------
 	type Group = { beats: Beat[]; box: Box; effect?: Box; container?: Box; cam: Camera }
 	const groups: Group[] = []
 	for (const beat of beats(timeline)) {
-		const alone = framing(beat.box, beat.effect, beat.container)
+		const alone = framing(beat.box, beat)
 		const last = groups.at(-1)
 		if (last && !last.beats.at(-1)?.navigation) {
 			const box = union(last.box, beat.box)
@@ -249,10 +312,16 @@ export function autoTrack(timeline: Timeline, options: CameraOptions): CameraTra
 				last.container && beat.container
 					? union(last.container, beat.container)
 					: (last.container ?? beat.container)
-			const cam = framing(box, effect, container)
-			// Le plan accueille le geste s'il ne doit pas trop reculer pour cela, et si le geste n'y
-			// paraît pas trop petit.
-			if (cam.zoom >= last.cam.zoom * KEEP_SHOT && cam.zoom >= alone.zoom * FIT_GESTURE) {
+			const cam = framing(box, { effect, container, bars: beat.bars, toolbar: beat.toolbar })
+			// Le plan accueille le geste s'il ne doit pas trop reculer pour cela, si le geste n'y
+			// paraît pas trop petit, et sans devenir la vue entière: un plan serré qui la rejoint
+			// n'est plus le même plan.
+			const widened = cam.zoom === 1 && last.cam.zoom > 1
+			if (
+				!widened &&
+				cam.zoom >= last.cam.zoom * KEEP_SHOT &&
+				cam.zoom >= alone.zoom * FIT_GESTURE
+			) {
 				Object.assign(last, { box, effect, container, cam })
 				last.beats.push(beat)
 				continue

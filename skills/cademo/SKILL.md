@@ -73,7 +73,9 @@ Règles d'écriture:
   attendre l'app.
 - Ne **pas** régler les temps à la main (ni `pause` après chaque geste, ni durée de bulle): les
   valeurs par défaut portent le rythme. `pause(ms)` sert seulement à laisser voir un résultat.
-- Une bulle (`note`) précède le geste qu'elle annonce, sur la même cible.
+- Une bulle (`note`) précède le geste qu'elle annonce, sur la même cible. Sans `placement`, elle
+  se range hors du volet ou du dialogue de sa cible quand l'image en a la place, pour ne pas
+  cacher le formulaire.
 - Un chargement animé (spinner) n'est pas raccourci automatiquement: l'envelopper dans `skip()`.
 - Locators accessibles (`getByRole`, `getByLabel`) comme dans les tests.
 
@@ -103,8 +105,11 @@ geste (ou de son animation) et le départ de la main suivante** — laisser resp
    conteneur de l'app n'a pas de titre, le signaler: c'est aussi un défaut d'accessibilité.
 7. **Rien n'est tranché inutilement**: le conteneur du geste se montre entier, avec l'espace
    qui le sépare du bord, dès qu'il tient dans un plan d'au moins ×1,2 (une carte sur toute la
-   largeur plutôt qu'une carte coupée). Un bord de cadre proche du bord de la page va jusqu'à lui
-   plutôt que de trancher l'en-tête ou la barre latérale qui y sont collés.
+   largeur plutôt qu'une carte coupée). Un bord de cadre ne tranche pas une barre de la page
+   (en-tête, barre latérale): le cadre glisse pour la laisser dehors, ou à défaut la prend entière.
+8. **Les actions restent visibles**: une barre d'actions flottante (élément fixé à l'écran qui
+   porte un bouton, hors notifications et dialogues) reste dans le cadre, quitte à ne plus zoomer
+   qu'à ×1,05.
 
 Ces règles sont codées dans cademo (`src/render/camera.ts`, `src/record/director.ts`). Une
 critique de l'utilisateur sur une vidéo doit devenir une **règle générale** de cademo, pas un
